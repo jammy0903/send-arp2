@@ -4,7 +4,7 @@
 #include "mac.h"
 
 #pragma pack(push, 1)
-struct EthHdr final {
+struct EthHdr {
 	Mac dmac_;
 	Mac smac_;
 	uint16_t type_;

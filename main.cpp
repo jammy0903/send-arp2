@@ -16,46 +16,35 @@ struct EthArpPacket final {
 };
 #pragma pack(pop)
 
-Mac get_mymac(char* dev); // 자신의 MAC 주소를 가져오는 함수
-Mac get_packet(const char* dev, Ip sip_); // 네트워크에서 특정 IP 주소를 가진 장치의 MAC 주소를 가져오는 함수
+Mac get_mymac(char* dev); // 자신의 MAC 주소get
+Mac get_packet(const char* dev, Ip sip_); // sender의 mac주소 get
 void send_packet(char* dev, const Ip& target_ip, const Mac& target_mac, const Ip& spoofed_ip, const Mac& spoofed_mac); // ARP 응답 패킷을 생성하고 전송하는 함수
 EthArpPacket Packet_make(const Mac& dmac, const Mac& smac, const Ip& sip, const Ip& tip, uint16_t opType); // ARP 패킷을 만드는 함수
 
 
 
-
-Mac get_mymac(char*dev) {
+Mac get_mymac(const char* dev) {
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0) {
         perror("Socket creation failed");
-        return NULL;
+        return Mac::nullMac();
     }
 
     struct ifreq ifr;
     memset(&ifr, 0, sizeof(ifr));
     strncpy(ifr.ifr_name, dev, IFNAMSIZ-1);
-    ifr.ifr_name[IFNAMSIZ-1] = '\0';
 
     if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0) {
         perror("ioctl() failed");
         close(fd);
-        return NULL;
+        return Mac::nullMac();
     }
 
     close(fd);
 
-    unsigned char* mac = (unsigned char*)ifr.ifr_hwaddr.sa_data;
-    char* str_mac = (char*)malloc(18); // MAC 주소를 위한 메모리 할당 (17 + 널 종료 문자)
-    if (str_mac == NULL) {
-        fprintf(stderr, "Memory allocation failed\n");
-        return NULL;
-    }
-
-    sprintf(str_mac, "%02x:%02x:%02x:%02x:%02x:%02x",
-            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-
-    return Mac(str_mac);
+    return Mac(reinterpret_cast<unsigned char*>(ifr.ifr_hwaddr.sa_data));
 }
+
 
 Mac myMac ={0};
 
@@ -68,7 +57,7 @@ EthArpPacket Packet_make (
     const Ip& tip ,
     uint16_t opType  )
 {
-    EthArpPacket packet; //arp packet
+    EthArpPacket packet;
 
     packet.eth_.dmac_ = dmac;
     packet.eth_.smac_ = smac;
